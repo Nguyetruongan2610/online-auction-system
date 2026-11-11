@@ -1,6 +1,8 @@
 package com.auction.common.user;
 
-public abstract class User {
+import java.io.Serializable;
+
+public abstract class User implements Serializable {
     protected String id;
     protected String name;
     protected String email;
@@ -35,10 +37,5 @@ public abstract class User {
         this.email = email;
     }
 
-    /**
-     * Phương thức trừu tượng thể hiện tính ĐA HÌNH (Polymorphism).
-     * Mỗi lớp con (Bidder, Seller, Admin) bắt buộc phải tự định nghĩa vai trò của
-     * mình.
-     */
     public abstract String getRole();
 }
