@@ -1,55 +1,57 @@
 package com.auction.server;
 
 import com.auction.common.model.Auction;
-import com.auction.common.model.Bid;
 import com.auction.common.model.AuctionStatus;
+import com.auction.common.model.Bid;
+import com.auction.common.user.Seller;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class AuctionManager {
-    private static AuctionManager instance;
 
-    private Map<String, Auction> auctions;
+    public static final double MIN_BID_STEP = 10000;
 
-    private AuctionManager() {
-        auctions = new HashMap<>();
+    private Map<String, Auction> auctions = new HashMap<>();
+
+    public Auction createAuction(String auctionId, Seller seller, double startingPrice) {
+        Auction auction = new Auction(auctionId, seller, startingPrice);
+        auctions.put(auctionId, auction);
+        return auction;
     }
 
-    public static synchronized AuctionManager getInstance() {
-        if (instance == null) {
-            instance = new AuctionManager();
-        }
-        return instance;
-    }
-
-    public void addAuction(Auction auction) {
-        auctions.put(auction.getAuctionId(), auction);
-    }
-
-    public synchronized boolean placeBid(String auctionId, Bid newBid) {
+    public Auction getAuction(String auctionId) {
         Auction auction = auctions.get(auctionId);
+        if (auction == null)
+            throw new IllegalArgumentException("Khong tim thay phien: " + auctionId);
+        return auction;
+    }
 
-        if (auction == null) {
-            System.out.println("Phiên đấu giá không tồn tại!");
-            return false;
+    public void startAuction(String auctionId)  { getAuction(auctionId).start(); }
+    public void finishAuction(String auctionId) { getAuction(auctionId).finish(); }
+    public void payAuction(String auctionId)    { getAuction(auctionId).pay(); }
+    public void cancelAuction(String auctionId) { getAuction(auctionId).cancel(); }
+
+    public void placeBid(String auctionId, Bid bid) {
+        Auction auction = getAuction(auctionId);
+        validateBid(auction, bid);   // kiểm tra hợp lệ
+        auction.addBid(bid);         // hợp lệ thì lưu
+    }
+
+    private void validateBid(Auction auction, Bid bid) {
+        if (auction.getStatus() != AuctionStatus.RUNNING)
+            throw new IllegalStateException("Phien chua chay hoac da ket thuc");
+
+        if (bid.getBidder().getId().equals(auction.getSeller().getId()))
+            throw new IllegalArgumentException("Seller khong duoc dau gia hang cua minh");
+
+        double minAccepted;
+        if (auction.getHighestBid() == null) {
+            minAccepted = auction.getStartingPrice();
+        } else {
+            minAccepted = auction.getCurrentPrice() + MIN_BID_STEP;
         }
-
-        if (auction.getStatus() != AuctionStatus.RUNNING) {
-            System.out.println("Phiên đấu giá không mở!");
-            return false;
-        }
-
-        double currentHighestPrice = auction.getHighestBid() != null ?
-                auction.getHighestBid().getAmount() :
-                auction.getStartingPrice();
-
-        if (newBid.getAmount() <= currentHighestPrice) {
-            System.out.println("Giá đưa ra phải cao hơn giá hiện tại!");
-            return false;
-        }
-
-        auction.setHighestBid(newBid);
-        System.out.println("Đặt giá thành công! Người mua: " + newBid.getBidder().getName() + " - Giá: " + newBid.getAmount());
-        return true;
+        if (bid.getAmount() < minAccepted)
+            throw new IllegalArgumentException("Gia dat phai >= " + minAccepted);
     }
 }
