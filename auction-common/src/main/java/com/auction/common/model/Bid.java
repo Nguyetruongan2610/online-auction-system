@@ -1,8 +1,10 @@
 package com.auction.common.model;
+
 import com.auction.common.user.Bidder;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public class Bid {
+public class Bid implements Serializable {
     private Bidder bidder;
     private double amount;
     private LocalDateTime timestamp;
